@@ -80,7 +80,7 @@
             const [data, setData] = useState(null);
             const [lat, setLat] = useState("");
             const [lng, setLng] = useState("");
-            const [radius, setRadius] = useState(""); // En kilómetros
+            const [radius, setRadius] = useState("1"); // En kilómetros
             const [results, setResults] = useState([]);
             const [loading, setLoading] = useState(false);
             
@@ -118,6 +118,23 @@
                 });
                 setResults(filtered);
             };
+
+            const getCurrentLocation = () => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude } = position.coords;
+                            setLat(latitude.toFixed(6));  // Fijamos una precisión de 6 decimales
+                            setLng(longitude.toFixed(6)); // Lo mismo con la longitud
+                        },
+                        (error) => {
+                            alert("No se pudo obtener la ubicación. Por favor, habilite la geolocalización.");
+                        }
+                    );
+                } else {
+                    alert("Tu navegador no soporta la geolocalización.");
+                }
+            };
             
             return (
                 <div>
@@ -130,6 +147,7 @@
                     </div>
                     {data && (
                         <div>
+                            <button onClick={getCurrentLocation}>Usar mi ubicación</button>
                             <input type="text" placeholder="Latitud" value={lat} onChange={e => setLat(e.target.value)} />
                             <input type="text" placeholder="Longitud" value={lng} onChange={e => setLng(e.target.value)} />
                             <input type="text" placeholder="Radio (km)" value={radius} onChange={e => setRadius(e.target.value)} />

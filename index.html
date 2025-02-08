@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gasolineras en España</title>
+    <!-- React y ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <!-- Babel para JSX -->
+    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background-color: gray;
+        }
+        input {
+            padding: 8px;
+            margin: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #e0e0e0;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #007bff;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="container"></div>
+    <script type="text/babel">
+        const { useState } = React;
+        
+        const App = () => {
+            const [data, setData] = useState(null);
+            const [lat, setLat] = useState("");
+            const [lng, setLng] = useState("");
+            const [radius, setRadius] = useState(""); // En kilómetros
+            const [results, setResults] = useState([]);
+            const [loading, setLoading] = useState(false);
+            
+            const fetchData = async () => {
+                setLoading(true);
+                const response = await fetch("https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/");
+                const json = await response.json();
+                setData(json.ListaEESSPrecio);
+                setLoading(false);
+            };
+            
+            const toRadians = (degrees) => degrees * (Math.PI / 180);
+            
+            const findNearby = () => {
+                if (!data || !lat || !lng) return;
+                const earthRadius = 6371; // Radio de la Tierra en km
+                const latNum = parseFloat(lat.replace(",", "."));
+                const lngNum = parseFloat(lng.replace(",", "."));
+                const radKm = parseFloat(radius.replace(",", "."));
+                
+                const filtered = data.filter(station => {
+                    const stationLat = parseFloat(station.Latitud.replace(",", "."));
+                    const stationLng = parseFloat(station["Longitud (WGS84)"].replace(",", "."));
+                    
+                    const dLat = toRadians(stationLat - latNum);
+                    const dLng = toRadians(stationLng - lngNum);
+                    const a = 
+                        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                        Math.cos(toRadians(latNum)) * Math.cos(toRadians(stationLat)) *
+                        Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const distance = earthRadius * c;
+                    
+                    return distance <= radKm;
+                });
+                setResults(filtered);
+            };
+            
+            return (
+                <div>
+                    <h1>Gasolineras en España</h1>
+                    <div className="button-container">
+                        <button onClick={fetchData} disabled={data !== null || loading}>
+                            {loading ? "Cargando..." : "Descargar Gasolineras"}
+                        </button>
+                        {loading && <div className="spinner"></div>}
+                    </div>
+                    {data && (
+                        <div>
+                            <input type="text" placeholder="Latitud" value={lat} onChange={e => setLat(e.target.value)} />
+                            <input type="text" placeholder="Longitud" value={lng} onChange={e => setLng(e.target.value)} />
+                            <input type="text" placeholder="Radio (km)" value={radius} onChange={e => setRadius(e.target.value)} />
+                            <button onClick={findNearby}>Buscar</button>
+                        </div>
+                    )}
+                    <ul>
+                        {results.map((station, index) => (
+                            <li key={index}>{station["Rótulo"]} - {station["Dirección"]} - {station["Municipio"]}</li>
+                        ))}
+                    </ul>
+                </div>
+            );
+        };
+        
+        ReactDOM.render(<App />, document.getElementById("root"));
+    </script>
+</body>
+</html>

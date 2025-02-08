@@ -83,6 +83,7 @@
             const [radius, setRadius] = useState("1"); // En kilómetros
             const [results, setResults] = useState([]);
             const [loading, setLoading] = useState(false);
+            const [geoLoading, setGeoLoading] = useState(false);
             
             const fetchData = async () => {
                 setLoading(true);
@@ -120,19 +121,23 @@
             };
 
             const getCurrentLocation = () => {
+                setGeoLoading(true);
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
                             const { latitude, longitude } = position.coords;
                             setLat(latitude.toFixed(6));  // Fijamos una precisión de 6 decimales
                             setLng(longitude.toFixed(6)); // Lo mismo con la longitud
+                            setGeoLoading(false);
                         },
                         (error) => {
                             alert("No se pudo obtener la ubicación. Por favor, habilite la geolocalización.");
+                            setGeoLoading(false);
                         }
                     );
                 } else {
                     alert("Tu navegador no soporta la geolocalización.");
+                    setGeoLoading(false);
                 }
             };
             
@@ -147,7 +152,10 @@
                     </div>
                     {data && (
                         <div>
-                            <button onClick={getCurrentLocation}>Usar mi ubicación</button>
+                            <button onClick={getCurrentLocation} disabled={geoLoading}>
+                                {geoLoading ? "Obteniendo ubicación..." : "Usar mi ubicación"}
+                            </button>
+                            {geoLoading && <div className="spinner"></div>}
                             <input type="text" placeholder="Latitud" value={lat} onChange={e => setLat(e.target.value)} />
                             <input type="text" placeholder="Longitud" value={lng} onChange={e => setLng(e.target.value)} />
                             <input type="text" placeholder="Radio (km)" value={radius} onChange={e => setRadius(e.target.value)} />
